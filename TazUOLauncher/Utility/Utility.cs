@@ -16,23 +16,65 @@ namespace TazUOLauncher;
 
 internal static class Utility
 {
-    public static Version GetVersion(this GitHubReleaseData data)
+    public static ClientVersionInfo GetClientVersionInfo(this GitHubReleaseData data)
+    {
+        if (data == null)
+            return ClientVersionInfo.Empty;
+
+        // Try tag_name first (most reliable for stable releases like "v1.0.0")
+        if (!string.IsNullOrEmpty(data.tag_name))
+        {
+            var parsed = ClientVersionInfo.Parse(data.tag_name);
+            if (parsed.Kind != ClientVersionInfo.VersionKind.Unknown)
+                return parsed;
+        }
+
+        // For bleeding-edge releases (tag = "TazUO-BleedingEdge"), construct version
+        // from the release's published_at date and commit SHA embedded in the body
+        if (data.tag_name == "TazUO-BleedingEdge" && data.body != null)
+        {
+            var shaMatch = Regex.Match(data.body, @"Commit:\s*([a-f0-9]+)");
+            if (shaMatch.Success)
+            {
+                string sha = shaMatch.Groups[1].Value;
+                if (sha.Length > 7)
+                    sha = sha.Substring(0, 7);
+                string date = data.published_at.ToString("yyyyMMdd");
+                return ClientVersionInfo.Parse($"0.0.0-dev.{date}.{sha}");
+            }
+        }
+
+        // Try release name as fallback
+        if (!string.IsNullOrEmpty(data.name))
+        {
+            var parsed = ClientVersionInfo.Parse(data.name);
+            if (parsed.Kind != ClientVersionInfo.VersionKind.Unknown)
+                return parsed;
+        }
+
+        return ClientVersionInfo.Empty;
+    }
+
+    /// <summary>
+    /// Extracts a System.Version from the release data (for launcher self-update only).
+    /// The launcher always uses semver from its assembly metadata.
+    /// </summary>
+    public static Version GetLauncherSemVer(this GitHubReleaseData data)
     {
         if (data != null && data.name != null)
         {
-            if (data.name.StartsWith('v'))            
-                data.name = data.name.Substring(1);            
+            string name = data.name;
+            if (name.StartsWith('v'))
+                name = name.Substring(1);
             else
             {
-                var m = Regex.Match(data.name, @"v(\d+\.\d+\.\d+)");
+                var m = Regex.Match(name, @"v(\d+\.\d+\.\d+)");
                 if (m.Success)
-                    data.name = m.Groups[1].Value;
+                    name = m.Groups[1].Value;
             }
 
-            if (Version.TryParse(data.name, out var version))
-            {
+            if (Version.TryParse(name, out var version))
                 return version;
-            }
         }
         return new Version(0, 0, 0);
     }
@@ -90,7 +132,7 @@ internal static class Utility
 
     public static void LaunchClient(Profile profile, Window window, bool force = false)
     {
-        string path = PathHelper.ClientExecutablePath(legacyOnly: LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.NET472);
+        string path = PathHelper.ClientExecutablePath();
         string clientPath = Path.Combine(profile.CUOSettings.UltimaOnlineDirectory, "client.exe");
 
         if (!File.Exists(path)) return;

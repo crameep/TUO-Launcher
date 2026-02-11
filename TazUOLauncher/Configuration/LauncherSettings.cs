@@ -15,6 +15,7 @@ internal class LauncherSettings
         public string LastSelectedProfileName { get; set; } = string.Empty;
         public ReleaseChannel DownloadChannel { get; set; } = ReleaseChannel.MAIN;
         public bool AutoDownloadUpdates { get; set; } = false;
+        public string SelectedBranch { get; set; } = string.Empty;
 
         public static LauncherSaveFile Get()
         {
@@ -23,7 +24,18 @@ internal class LauncherSettings
                 var p = Path.Combine(PathHelper.LauncherPath, "launcherdata.json");
                 if (File.Exists(p))
                 {
-                    return JsonSerializer.Deserialize<LauncherSaveFile>(File.ReadAllText(p)) ?? new LauncherSaveFile();
+                    var settings = JsonSerializer.Deserialize<LauncherSaveFile>(File.ReadAllText(p)) ?? new LauncherSaveFile();
+
+                    // Migrate users who had the removed NET472 channel (or any unknown value) to MAIN
+                    if (settings.DownloadChannel != ReleaseChannel.MAIN &&
+                        settings.DownloadChannel != ReleaseChannel.DEV &&
+                        settings.DownloadChannel != ReleaseChannel.LAUNCHER &&
+                        settings.DownloadChannel != ReleaseChannel.BRANCH)
+                    {
+                        settings.DownloadChannel = ReleaseChannel.MAIN;
+                    }
+
+                    return settings;
                 }
             }
             catch (Exception e)

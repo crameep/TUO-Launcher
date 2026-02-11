@@ -6,7 +6,7 @@ public enum ReleaseChannel
     MAIN,
     DEV,
     LAUNCHER,
-    NET472
+    BRANCH
 }
 
 public enum ClientStatus

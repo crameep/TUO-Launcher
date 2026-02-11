@@ -8,9 +8,9 @@ namespace TazUOLauncher;
 
 internal static class ClientHelper
 {
-    private static Version localClientVersion = GetInstalledVersion();
+    private static ClientVersionInfo localClientVersion = GetInstalledVersion();
 
-    public static Version LocalClientVersion { get => localClientVersion; set { localClientVersion = GetInstalledVersion(); } }
+    public static ClientVersionInfo LocalClientVersion { get => localClientVersion; set { localClientVersion = GetInstalledVersion(); } }
 
     /// <summary>
     /// This will cleanup TazUO files when swapping channels
@@ -65,24 +65,27 @@ internal static class ClientHelper
             }
         }
     }
-    private static Version GetInstalledVersion()
+    private static ClientVersionInfo GetInstalledVersion()
     {
         var versionTxt = Path.Combine(PathHelper.ClientPath, "v.txt");
         if (File.Exists(versionTxt))
         {
             try
             {
-                var version = File.ReadAllText(versionTxt);
-                return new Version(version);
+                var version = File.ReadAllText(versionTxt).Trim();
+                if (!string.IsNullOrEmpty(version))
+                    return ClientVersionInfo.Parse(version);
             }
             catch { }
         }
-        
+
         if (File.Exists(PathHelper.ClientExecutablePath(true)))
         {
-            return AssemblyName.GetAssemblyName(PathHelper.ClientExecutablePath(true)).Version ?? new Version(0, 0, 0, 0);
+            var asmVersion = AssemblyName.GetAssemblyName(PathHelper.ClientExecutablePath(true)).Version;
+            if (asmVersion != null)
+                return ClientVersionInfo.Parse($"{asmVersion.Major}.{asmVersion.Minor}.{asmVersion.Build}");
         }
-        
-        return new Version(0, 0, 0, 0);
+
+        return ClientVersionInfo.Empty;
     }
 }
