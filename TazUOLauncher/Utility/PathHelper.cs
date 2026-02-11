@@ -31,13 +31,10 @@ public static class PathHelper
 
         return string.Empty;
     }
-    public static string ClientExecutablePath(bool returnExeOnly = false, bool legacyOnly = false)
+    public static string ClientExecutablePath(bool returnExeOnly = false)
     {
         try
         {
-            if(legacyOnly)
-                return Path.Combine(ClientPath, CONSTANTS.CLASSIC_EXE_NAME + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : string.Empty));
-            
             return NativePath(returnExeOnly);
         }
         catch (Exception ex)

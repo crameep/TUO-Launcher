@@ -23,7 +23,17 @@ internal class LauncherSettings
                 var p = Path.Combine(PathHelper.LauncherPath, "launcherdata.json");
                 if (File.Exists(p))
                 {
-                    return JsonSerializer.Deserialize<LauncherSaveFile>(File.ReadAllText(p)) ?? new LauncherSaveFile();
+                    var settings = JsonSerializer.Deserialize<LauncherSaveFile>(File.ReadAllText(p)) ?? new LauncherSaveFile();
+
+                    // Migrate users who had the removed NET472 channel (or any unknown value) to MAIN
+                    if (settings.DownloadChannel != ReleaseChannel.MAIN &&
+                        settings.DownloadChannel != ReleaseChannel.DEV &&
+                        settings.DownloadChannel != ReleaseChannel.LAUNCHER)
+                    {
+                        settings.DownloadChannel = ReleaseChannel.MAIN;
+                    }
+
+                    return settings;
                 }
             }
             catch (Exception e)

@@ -5,8 +5,7 @@ public enum ReleaseChannel
     INVALID,
     MAIN,
     DEV,
-    LAUNCHER,
-    NET472
+    LAUNCHER
 }
 
 public enum ClientStatus

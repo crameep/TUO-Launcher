@@ -28,7 +28,6 @@ public partial class MainWindow : Window
 
         viewModel.MainChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.MAIN;
         viewModel.DevChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.DEV;
-        viewModel.LegacyChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.NET472;
 
         DoChecksAsync();
         LoadProfiles();
@@ -132,7 +131,7 @@ public partial class MainWindow : Window
         {
             switch (nextDownloadType)
             {
-                case ReleaseChannel.MAIN or ReleaseChannel.DEV or ReleaseChannel.NET472:
+                case ReleaseChannel.MAIN or ReleaseChannel.DEV:
                     viewModel.UpdateButtonString = clientStatus == ClientStatus.NO_LOCAL_CLIENT ? CONSTANTS.NO_CLIENT_AVAILABLE : CONSTANTS.CLIENT_UPDATE_AVAILABLE;
                     viewModel.ShowDownloadAvailableButton = true;
                     break;
@@ -217,7 +216,6 @@ public partial class MainWindow : Window
         
         viewModel.MainChannelSelected = true;
         viewModel.DevChannelSelected = false;
-        viewModel.LegacyChannelSelected = false;
         LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.MAIN;
         RecheckAfterChannelUpdated();
     }
@@ -227,18 +225,7 @@ public partial class MainWindow : Window
         
         viewModel.DevChannelSelected = true;
         viewModel.MainChannelSelected = false;
-        viewModel.LegacyChannelSelected = false;
         LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.DEV;
-        RecheckAfterChannelUpdated();
-    }
-    public void SetLegacyChannelClicked(object sender, RoutedEventArgs args)
-    {
-        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.NET472) return;
-        
-        viewModel.DevChannelSelected = false;
-        viewModel.MainChannelSelected = false;
-        viewModel.LegacyChannelSelected = true;
-        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.NET472;
         RecheckAfterChannelUpdated();
     }
 
@@ -315,12 +302,6 @@ public partial class MainWindow : Window
         nextDownloadType = ReleaseChannel.DEV;
         DoNextDownload();
     }
-    public void DownloadLegacyBuildClick(object sender, RoutedEventArgs args)
-    {
-        if (clientStatus == ClientStatus.DOWNLOAD_IN_PROGRESS) return;
-        nextDownloadType = ReleaseChannel.NET472;
-        DoNextDownload();
-    }
     public void ImportCUOLauncherClick(object sender, RoutedEventArgs args)
     {
         if (!Utility.TryImportCUOProfiles())
@@ -358,7 +339,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private bool devChannelSelected;
     private bool mainChannelSelected;
     private bool dangerNoticeStringShowing;
-    private bool legacyChannelSelected;
     private bool autoApplyUpdates = LauncherSettings.GetLauncherSaveFile.AutoDownloadUpdates;
 
     public ObservableCollection<string> Profiles
@@ -398,14 +378,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             autoApplyUpdates = value;
             OnPropertyChanged(nameof(AutoApplyUpdates));
-        }
-    }
-    public bool LegacyChannelSelected
-    {
-        get => legacyChannelSelected; set
-        {
-            legacyChannelSelected = value;
-            OnPropertyChanged(nameof(LegacyChannelSelected));
         }
     }
     public bool DevChannelSelected

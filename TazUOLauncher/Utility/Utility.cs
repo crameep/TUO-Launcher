@@ -90,7 +90,7 @@ internal static class Utility
 
     public static void LaunchClient(Profile profile, Window window, bool force = false)
     {
-        string path = PathHelper.ClientExecutablePath(legacyOnly: LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.NET472);
+        string path = PathHelper.ClientExecutablePath();
         string clientPath = Path.Combine(profile.CUOSettings.UltimaOnlineDirectory, "client.exe");
 
         if (!File.Exists(path)) return;

@@ -30,8 +30,6 @@ public partial class ProfileEditorWindow : Window
                 EntrySavePass.IsChecked = true;
         };
 
-        bool isModernTazUO = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.MAIN || LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.DEV;
-        ModernTazUOPluginWarning.IsVisible = isModernTazUO;
     }
 
     public void LocateUOFolderClicked(object s, RoutedEventArgs args)

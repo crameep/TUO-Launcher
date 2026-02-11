@@ -21,7 +21,6 @@
                 <MenuItem Header="Tools">
                     <MenuItem Header="Install latest main build" Click="DownloadMainBuildClick"/>
                     <MenuItem Header="Install latest dev build" Click="DownloadDevBuildClick"/>
-                    <MenuItem Header="Install latest legacy build" Click="DownloadLegacyBuildClick"/>
                     <MenuItem Header="Import ClassicUO Launcher profiles" Click="ImportCUOLauncherClick"/>
                 </MenuItem>
                 <Separator/>
@@ -34,11 +33,6 @@
                     <MenuItem Header="Development Channel" GroupName="ChannelGroup" IsChecked="{Binding DevChannelSelected}" Click="SetDevChannelClicked">
                         <MenuItem.Icon>
                         <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding DevChannelSelected}" />
-                        </MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="Legacy Channel" GroupName="ChannelGroup" IsChecked="{Binding LegacyChannelSelected}" Click="SetLegacyChannelClicked">
-                        <MenuItem.Icon>
-                            <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding LegacyChannelSelected}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>

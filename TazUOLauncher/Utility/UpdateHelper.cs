@@ -25,8 +25,6 @@ internal static class UpdateHelper
             TryGetReleaseData(ReleaseChannel.MAIN),
             Task.Delay(500),
             TryGetReleaseData(ReleaseChannel.LAUNCHER),
-            Task.Delay(500),
-            TryGetReleaseData(ReleaseChannel.NET472),
         };
 
         await Task.WhenAll(all);
@@ -47,7 +45,6 @@ internal static class UpdateHelper
             case ReleaseChannel.LAUNCHER:
                 url = CONSTANTS.LAUNCHER_RELEASE_URL;
                 break;
-            case ReleaseChannel.NET472:
             default:
                 url = CONSTANTS.MAIN_CHANNEL_RELEASE_URL;
                 break;
