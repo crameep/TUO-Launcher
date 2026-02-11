@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -13,7 +14,13 @@ namespace TazUOLauncher;
 
 internal static class UpdateHelper
 {
+    private const string BRANCH_TAG_PREFIX = "branch-";
+    private static readonly TimeSpan BranchCacheTtl = TimeSpan.FromMinutes(5);
+
     public static ConcurrentDictionary<ReleaseChannel, GitHubReleaseData> ReleaseData = new ConcurrentDictionary<ReleaseChannel, GitHubReleaseData>();
+
+    private static List<GitHubReleaseData>? _cachedBranchReleases;
+    private static DateTime _branchCacheTimestamp = DateTime.MinValue;
 
     public static bool HaveData(ReleaseChannel channel) { return ReleaseData.ContainsKey(channel) && ReleaseData[channel] != null; }
 
@@ -28,6 +35,92 @@ internal static class UpdateHelper
         };
 
         await Task.WhenAll(all);
+
+        // Fetch branch after other channels so MAIN is available for fallback
+        await FetchAndCacheBranchRelease();
+    }
+
+    public static async Task<List<GitHubReleaseData>> GetBranchReleases()
+    {
+        if (_cachedBranchReleases != null && DateTime.UtcNow - _branchCacheTimestamp < BranchCacheTtl)
+            return _cachedBranchReleases;
+
+        string url = CONSTANTS.BRANCH_BUILDS_API_URL + "?per_page=100";
+
+        HttpRequestMessage restApi = new HttpRequestMessage()
+        {
+            Method = HttpMethod.Get,
+            RequestUri = new Uri(url),
+        };
+        restApi.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+        restApi.Headers.Add("User-Agent", "Public");
+
+        try
+        {
+            var httpClient = new HttpClient();
+            string jsonResponse = await httpClient.Send(restApi).Content.ReadAsStringAsync();
+            var allReleases = JsonSerializer.Deserialize<GitHubReleaseData[]>(jsonResponse);
+
+            if (allReleases != null)
+            {
+                _cachedBranchReleases = allReleases
+                    .Where(r => r.tag_name != null && r.tag_name.StartsWith(BRANCH_TAG_PREFIX))
+                    .ToList();
+            }
+            else
+            {
+                _cachedBranchReleases = new List<GitHubReleaseData>();
+            }
+
+            _branchCacheTimestamp = DateTime.UtcNow;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            _cachedBranchReleases ??= new List<GitHubReleaseData>();
+        }
+
+        return _cachedBranchReleases;
+    }
+
+    public static async Task<List<string>> GetBranchNames()
+    {
+        var releases = await GetBranchReleases();
+        return releases
+            .Where(r => !string.IsNullOrEmpty(r.tag_name) && r.tag_name.Length > BRANCH_TAG_PREFIX.Length)
+            .Select(r => r.tag_name!.Substring(BRANCH_TAG_PREFIX.Length))
+            .ToList();
+    }
+
+    public static async Task<GitHubReleaseData?> GetBranchReleaseData(string branchName)
+    {
+        var releases = await GetBranchReleases();
+        string tagName = BRANCH_TAG_PREFIX + branchName;
+        return releases.FirstOrDefault(r => r.tag_name == tagName);
+    }
+
+    private static async Task FetchAndCacheBranchRelease()
+    {
+        string selectedBranch = LauncherSettings.GetLauncherSaveFile.SelectedBranch;
+        if (string.IsNullOrEmpty(selectedBranch))
+            return;
+
+        var branchRelease = await GetBranchReleaseData(selectedBranch);
+
+        if (branchRelease != null)
+        {
+            if (!ReleaseData.TryAdd(ReleaseChannel.BRANCH, branchRelease))
+                ReleaseData[ReleaseChannel.BRANCH] = branchRelease;
+        }
+        else
+        {
+            Console.WriteLine($"Branch build '{selectedBranch}' not found. Falling back to MAIN channel.");
+            if (HaveData(ReleaseChannel.MAIN))
+            {
+                if (!ReleaseData.TryAdd(ReleaseChannel.BRANCH, ReleaseData[ReleaseChannel.MAIN]))
+                    ReleaseData[ReleaseChannel.BRANCH] = ReleaseData[ReleaseChannel.MAIN];
+            }
+        }
     }
 
     private static async Task<GitHubReleaseData?> TryGetReleaseData(ReleaseChannel channel)
@@ -86,7 +179,7 @@ internal static class UpdateHelper
     }
 
     /// <summary>
-    /// Only supports dev/main not launcher channel
+    /// Supports dev/main/branch channels, not launcher channel
     /// </summary>
     /// <param name="channel"></param>
     /// <param name="downloadProgress"></param>
