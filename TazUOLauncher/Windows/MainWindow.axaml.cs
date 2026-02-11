@@ -87,16 +87,16 @@ public partial class MainWindow : Window
         if (!UpdateHelper.HaveData(ReleaseChannel.LAUNCHER)) return;
 
         var data = UpdateHelper.ReleaseData[ReleaseChannel.LAUNCHER];
-        if (data.GetVersion() > LauncherVersion.GetLauncherVersion())
+        if (data.GetLauncherSemVer() > LauncherVersion.GetLauncherVersion())
         {
-            viewModel.DangerNoticeString = $"A launcher update is available! ({LauncherVersion.GetLauncherVersion().ToHumanReable()} -> {data.GetVersion().ToHumanReable()})";
+            viewModel.DangerNoticeString = $"A launcher update is available! ({LauncherVersion.GetLauncherVersion().ToHumanReable()} -> {data.GetLauncherSemVer().ToHumanReable()})";
             viewModel.ShowLauncherUpdateButton = true;
         }
     }
     private void UpdateVersionStrings()
     {
         if (UpdateHelper.HaveData(LauncherSettings.GetLauncherSaveFile.DownloadChannel))
-            viewModel.RemoteVersionString = string.Format(CONSTANTS.REMOTE_VERSION_FORMAT, UpdateHelper.ReleaseData[LauncherSettings.GetLauncherSaveFile.DownloadChannel].GetVersion().ToHumanReable());
+            viewModel.RemoteVersionString = string.Format(CONSTANTS.REMOTE_VERSION_FORMAT, UpdateHelper.ReleaseData[LauncherSettings.GetLauncherSaveFile.DownloadChannel].GetClientVersionInfo().ToDisplayString());
     }
     private void ClientExistsChecks()
     {
@@ -109,7 +109,7 @@ public partial class MainWindow : Window
         else
         {
             viewModel.DangerNoticeString = string.Empty;
-            viewModel.LocalVersionString = string.Format(CONSTANTS.LOCAL_VERSION_FORMAT, ClientHelper.LocalClientVersion.ToHumanReable());
+            viewModel.LocalVersionString = string.Format(CONSTANTS.LOCAL_VERSION_FORMAT, ClientHelper.LocalClientVersion.ToDisplayString());
             viewModel.PlayButtonEnabled = true;
             clientStatus = ClientStatus.READY;
         }
@@ -119,7 +119,8 @@ public partial class MainWindow : Window
         if (clientStatus > ClientStatus.NO_LOCAL_CLIENT) //Only check for updates if we have a client installed already
             if (UpdateHelper.HaveData(LauncherSettings.GetLauncherSaveFile.DownloadChannel))
             {
-                if (UpdateHelper.ReleaseData[LauncherSettings.GetLauncherSaveFile.DownloadChannel].GetVersion() > ClientHelper.LocalClientVersion)
+                var remoteVersion = UpdateHelper.ReleaseData[LauncherSettings.GetLauncherSaveFile.DownloadChannel].GetClientVersionInfo();
+                if (ClientVersionInfo.IsUpdateAvailable(ClientHelper.LocalClientVersion, remoteVersion))
                 {
                     nextDownloadType = LauncherSettings.GetLauncherSaveFile.DownloadChannel;
                 }
