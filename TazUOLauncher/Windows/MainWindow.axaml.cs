@@ -28,6 +28,10 @@ public partial class MainWindow : Window
 
         viewModel.MainChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.MAIN;
         viewModel.DevChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.DEV;
+        viewModel.BranchChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.BRANCH;
+
+        if (viewModel.BranchChannelSelected)
+            _ = PopulateBranchNames();
 
         DoChecksAsync();
         LoadProfiles();
@@ -95,8 +99,15 @@ public partial class MainWindow : Window
     }
     private void UpdateVersionStrings()
     {
-        if (UpdateHelper.HaveData(LauncherSettings.GetLauncherSaveFile.DownloadChannel))
-            viewModel.RemoteVersionString = string.Format(CONSTANTS.REMOTE_VERSION_FORMAT, UpdateHelper.ReleaseData[LauncherSettings.GetLauncherSaveFile.DownloadChannel].GetClientVersionInfo().ToDisplayString());
+        var channel = LauncherSettings.GetLauncherSaveFile.DownloadChannel;
+        if (UpdateHelper.HaveData(channel))
+        {
+            var versionInfo = UpdateHelper.ReleaseData[channel].GetClientVersionInfo();
+            if (channel == ReleaseChannel.BRANCH && !string.IsNullOrEmpty(LauncherSettings.GetLauncherSaveFile.SelectedBranch))
+                viewModel.RemoteVersionString = $"Branch: {versionInfo.ToDisplayString()}";
+            else
+                viewModel.RemoteVersionString = string.Format(CONSTANTS.REMOTE_VERSION_FORMAT, versionInfo.ToDisplayString());
+        }
     }
     private void ClientExistsChecks()
     {
@@ -132,7 +143,7 @@ public partial class MainWindow : Window
         {
             switch (nextDownloadType)
             {
-                case ReleaseChannel.MAIN or ReleaseChannel.DEV:
+                case ReleaseChannel.MAIN or ReleaseChannel.DEV or ReleaseChannel.BRANCH:
                     viewModel.UpdateButtonString = clientStatus == ClientStatus.NO_LOCAL_CLIENT ? CONSTANTS.NO_CLIENT_AVAILABLE : CONSTANTS.CLIENT_UPDATE_AVAILABLE;
                     viewModel.ShowDownloadAvailableButton = true;
                     break;
@@ -214,20 +225,94 @@ public partial class MainWindow : Window
     public void SetStableChannelClicked(object sender, RoutedEventArgs args)
     {
         if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.MAIN) return;
-        
+
         viewModel.MainChannelSelected = true;
         viewModel.DevChannelSelected = false;
+        viewModel.BranchChannelSelected = false;
         LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.MAIN;
         RecheckAfterChannelUpdated();
     }
     public void SetDevChannelClicked(object sender, RoutedEventArgs args)
     {
         if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.DEV) return;
-        
+
         viewModel.DevChannelSelected = true;
         viewModel.MainChannelSelected = false;
+        viewModel.BranchChannelSelected = false;
         LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.DEV;
         RecheckAfterChannelUpdated();
+    }
+    public async void SetBranchChannelClicked(object sender, RoutedEventArgs args)
+    {
+        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.BRANCH) return;
+
+        viewModel.BranchChannelSelected = true;
+        viewModel.MainChannelSelected = false;
+        viewModel.DevChannelSelected = false;
+        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.BRANCH;
+
+        await PopulateBranchNames();
+
+        if (viewModel.BranchNames.Count == 0)
+        {
+            viewModel.DangerNoticeString = "No feature branch builds available.";
+        }
+        else if (string.IsNullOrEmpty(LauncherSettings.GetLauncherSaveFile.SelectedBranch))
+        {
+            viewModel.DangerNoticeString = "Select a branch from the menu.";
+        }
+        else
+        {
+            await SelectBranch(LauncherSettings.GetLauncherSaveFile.SelectedBranch);
+        }
+    }
+    private async Task PopulateBranchNames()
+    {
+        var names = await UpdateHelper.GetBranchNames();
+        viewModel.BranchNames.Clear();
+
+        foreach (var item in BranchSubmenu.Items)
+            if (item is MenuItem mi)
+                mi.Click -= BranchMenuItemClick;
+
+        BranchSubmenu.Items.Clear();
+        foreach (var name in names)
+        {
+            viewModel.BranchNames.Add(name);
+            var item = new MenuItem { Header = name, Tag = name };
+            item.Click += BranchMenuItemClick;
+            BranchSubmenu.Items.Add(item);
+        }
+
+        if (names.Count == 0)
+        {
+            BranchSubmenu.Items.Add(new MenuItem { Header = "No branch builds available", IsEnabled = false });
+        }
+    }
+    private async void BranchMenuItemClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem item && item.Tag is string branchName)
+            await SelectBranch(branchName);
+    }
+    private async Task SelectBranch(string branchName)
+    {
+        viewModel.SelectedBranchName = branchName;
+
+        var branchRelease = await UpdateHelper.GetBranchReleaseData(branchName);
+        if (branchRelease != null)
+        {
+            LauncherSettings.GetLauncherSaveFile.SelectedBranch = branchName;
+
+            if (!UpdateHelper.ReleaseData.TryAdd(ReleaseChannel.BRANCH, branchRelease))
+                UpdateHelper.ReleaseData[ReleaseChannel.BRANCH] = branchRelease;
+
+            viewModel.DangerNoticeString = string.Empty;
+            RecheckAfterChannelUpdated();
+        }
+        else
+        {
+            viewModel.DangerNoticeString = $"Branch '{branchName}' build not found. Select another branch.";
+        }
     }
 
     private async void RecheckAfterChannelUpdated()
@@ -339,8 +424,11 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private bool showLauncherUpdateButton;
     private bool devChannelSelected;
     private bool mainChannelSelected;
+    private bool branchChannelSelected;
     private bool dangerNoticeStringShowing;
     private bool autoApplyUpdates = LauncherSettings.GetLauncherSaveFile.AutoDownloadUpdates;
+    private ObservableCollection<string> branchNames = new ObservableCollection<string>();
+    private string selectedBranchName = LauncherSettings.GetLauncherSaveFile.SelectedBranch;
 
     public ObservableCollection<string> Profiles
     {
@@ -395,6 +483,30 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             mainChannelSelected = value;
             OnPropertyChanged(nameof(MainChannelSelected));
+        }
+    }
+    public bool BranchChannelSelected
+    {
+        get => branchChannelSelected; set
+        {
+            branchChannelSelected = value;
+            OnPropertyChanged(nameof(BranchChannelSelected));
+        }
+    }
+    public ObservableCollection<string> BranchNames
+    {
+        get => branchNames; set
+        {
+            branchNames = value;
+            OnPropertyChanged(nameof(BranchNames));
+        }
+    }
+    public string SelectedBranchName
+    {
+        get => selectedBranchName; set
+        {
+            selectedBranchName = value;
+            OnPropertyChanged(nameof(SelectedBranchName));
         }
     }
     public bool ShowDownloadAvailableButton
