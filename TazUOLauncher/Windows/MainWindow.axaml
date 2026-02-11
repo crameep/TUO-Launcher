@@ -2,7 +2,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vm="using:TazUOLauncher" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" Width="800" Height="450" CanResize="False" x:DataType="vm:MainWindowViewModel" x:Class="TazUOLauncher.MainWindow" Icon="resm:TazUOLauncher.Resources.icon.ico?assembly=TazUOLauncher" Title="TazUOLauncher">
+    xmlns:vm="using:TazUOLauncher" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" Width="800" Height="450" CanResize="False" x:DataType="vm:MainWindowViewModel" x:Class="TazUOLauncher.MainWindow" Icon="resm:TazUOLauncher.Resources.icon.ico?assembly=TazUOLauncher" Title="TazUO - Crameep's Build">
     <Canvas x:Name="MainCanvas" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}" Background="Black">
         <Image Source="resm:TazUOLauncher.Resources.background.png?assembly=TazUOLauncher" Stretch="Fill" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}" Opacity="1">
             <Image.OpacityMask>
@@ -71,7 +71,9 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <ComboBox x:Name="ProfileSelector" PlaceholderText="Select a profile" Name="ProfileSelector" Canvas.Left="300" Canvas.Top="255" MaxWidth="200" Width="200" ItemsSource="{Binding Profiles}" SelectionChanged="ProfileSelectionChanged"/>
+        <TextBlock Canvas.Left="300" Canvas.Top="245" Width="200" TextAlignment="Center" Foreground="#FFFFFF" FontSize="12" Opacity="0.75">Crameep's Build</TextBlock>
+
+        <ComboBox x:Name="ProfileSelector" PlaceholderText="Select a profile" Name="ProfileSelector" Canvas.Left="300" Canvas.Top="270" MaxWidth="200" Width="200" ItemsSource="{Binding Profiles}" SelectionChanged="ProfileSelectionChanged"/>
 
         <Button Name="PlayButton" x:Name="PlayButton" IsEnabled="{Binding PlayButtonEnabled}" Margin="0, 1, 0, 0" Width="200" Canvas.Left="300" Canvas.Top="{Binding #ProfileSelector.Bounds.Bottom}" Click="PlayButtonClicked" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
                 Play
