@@ -48,8 +48,6 @@ internal static class UpdateHelper
                 url = CONSTANTS.LAUNCHER_RELEASE_URL;
                 break;
             case ReleaseChannel.NET472:
-                url = CONSTANTS.NET472_CHANNEL_RELEASE_URL;
-                break;
             default:
                 url = CONSTANTS.MAIN_CHANNEL_RELEASE_URL;
                 break;
