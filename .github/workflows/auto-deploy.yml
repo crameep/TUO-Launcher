@@ -158,6 +158,7 @@ jobs:
           </plist>
           PLIST_EOF
           echo -n "APPL????" > "$APP/Contents/PkgInfo"
+          codesign --force --deep --sign - "$APP"
           zip -ry "$OUT/${{ env.ZIP_NAME }}.${{ env.RID }}.app.zip" "$APP"
 
       - name: Get last release commit

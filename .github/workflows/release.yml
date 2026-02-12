@@ -107,6 +107,7 @@ jobs:
           </plist>
           PLIST_EOF
           echo -n "APPL????" > "$APP/Contents/PkgInfo"
+          codesign --force --deep --sign - "$APP"
           zip -ry "publish/TUO-Launcher-${{ matrix.rid }}.app.zip" "$APP"
 
       - name: Upload artifact
