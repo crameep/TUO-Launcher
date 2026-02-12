@@ -1,4 +1,4 @@
-name: Launcher-Deploy
+name: Dev Build
 
 on:
   push:
@@ -21,7 +21,7 @@ env:
   OUTPUT_PATH: "../../bin/dist"
   PROJ: "TazUOLauncher/TazUOLauncher.csproj"
   ZIP_NAME: "TazUO-Launcher"
-  TAG_NAME: "TazUO-Launcher"
+  TAG_NAME: "dev"
 
   DOTNET_NOLOGO: false
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
@@ -54,13 +54,6 @@ jobs:
             VERSION=$(sed -nE 's/.*<AssemblyVersion>([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' "${{ env.PROJ }}")
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Create tag
-        continue-on-error: true
-        if: ${{ strategy.job-index == 0 }}
-        run: |
-          git tag v${{ env.VERSION }}
-          git push origin v${{ env.VERSION }}
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -212,16 +205,18 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "${{ env.OUTPUT_PATH }}/${{ env.RID }}/${{ env.ZIP_NAME }}.${{ env.RID }}*.zip"
-          name: "v${{ env.VERSION }}"
+          name: "Dev Build (v${{ env.VERSION }})"
           body: |
-            These are built automatically on the main branch. 
-            This is version v${{ env.VERSION }} 
+            **Development build** — automatically built from the latest main branch commit.
+            This may be unstable. For stable releases, see the [latest release](../../releases/latest).
 
-            # Release notes
+            Version: v${{ env.VERSION }}
+
+            # Changes since last dev build
             ${{ steps.release_notes.outputs.RELEASE_NOTES }}
-          makeLatest: true
+          makeLatest: false
           allowUpdates: true
-          prerelease: false
+          prerelease: true
           tag: ${{ env.TAG_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -229,16 +224,18 @@ jobs:
         if: ${{ strategy.job-index > 0 }}
         uses: ncipollo/release-action@v1
         with:
-          name: "v${{ env.VERSION }}"
+          name: "Dev Build (v${{ env.VERSION }})"
           body: |
-            These are built automatically on the main branch.
-            This is version v${{ env.VERSION }}
+            **Development build** — automatically built from the latest main branch commit.
+            This may be unstable. For stable releases, see the [latest release](../../releases/latest).
 
-            # Release notes
+            Version: v${{ env.VERSION }}
+
+            # Changes since last dev build
             ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           artifacts: "${{ env.OUTPUT_PATH }}/${{ env.RID }}/${{ env.ZIP_NAME }}.${{ env.RID }}*.zip"
           allowUpdates: true
-          prerelease: false
+          prerelease: true
           replacesArtifacts: false
           tag: ${{ env.TAG_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
