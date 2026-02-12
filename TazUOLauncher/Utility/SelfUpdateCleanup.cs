@@ -14,7 +14,7 @@ internal static class SelfUpdateCleanup
     {
         try
         {
-            string launcherDir = PathHelper.LauncherPath;
+            string launcherDir = PathHelper.LauncherBinPath;
 
             foreach (string file in Directory.EnumerateFiles(launcherDir, "*.old", SearchOption.AllDirectories))
             {

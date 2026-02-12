@@ -31,7 +31,7 @@ internal static class LauncherSelfUpdater
     /// </summary>
     public static async Task<bool> DownloadAndApplyUpdate(DownloadProgress progress)
     {
-        string launcherDir = PathHelper.LauncherPath;
+        string launcherDir = PathHelper.LauncherBinPath;
         string tempZip = string.Empty;
         string stagingDir = string.Empty;
         var renamedFiles = new List<(string original, string oldPath)>();

@@ -6,7 +6,37 @@ namespace TazUOLauncher;
 
 public static class PathHelper
 {
-    public static string LauncherPath { get; set; } = AppDomain.CurrentDomain.BaseDirectory;
+    /// <summary>
+    /// The directory where the launcher executable and native libraries live.
+    /// Inside a macOS .app bundle this is Contents/MacOS/; otherwise same as LauncherPath.
+    /// Used by the self-updater to replace launcher binaries in-place.
+    /// </summary>
+    public static string LauncherBinPath { get; } = AppDomain.CurrentDomain.BaseDirectory;
+
+    public static string LauncherPath { get; set; } = GetDataPath();
+
+    /// <summary>
+    /// When running from a macOS .app bundle, returns the directory containing the .app
+    /// so that TazUO client files aren't nested inside the bundle. This avoids SDL2's
+    /// SDL_GetBasePath() misidentifying the client as part of the launcher's .app bundle.
+    /// </summary>
+    private static string GetDataPath()
+    {
+        string basePath = AppDomain.CurrentDomain.BaseDirectory;
+
+        // Detect .app bundle: path contains "Something.app/Contents/MacOS/"
+        int idx = basePath.IndexOf(".app/Contents/MacOS", StringComparison.Ordinal);
+        if (idx >= 0)
+        {
+            // Find the start of "Something.app" by looking for the last separator before ".app"
+            string upToApp = basePath.Substring(0, idx + 4); // includes ".app"
+            string? parent = Path.GetDirectoryName(upToApp);
+            if (parent != null)
+                return parent + Path.DirectorySeparatorChar;
+        }
+
+        return basePath;
+    }
 
     public static string ProfilesPath { get; set; } = Path.Combine(LauncherPath, "Profiles");
 
