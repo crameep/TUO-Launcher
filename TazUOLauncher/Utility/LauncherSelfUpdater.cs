@@ -115,7 +115,11 @@ internal static class LauncherSelfUpdater
             if (!string.IsNullOrEmpty(newExePath) && File.Exists(newExePath))
             {
                 Log($"Launching updated launcher: {newExePath}");
-                Process.Start(new ProcessStartInfo(newExePath) { WorkingDirectory = launcherDir });
+                Process.Start(new ProcessStartInfo(newExePath)
+                {
+                    WorkingDirectory = launcherDir,
+                    UseShellExecute = true
+                });
                 return true; // Caller should exit gracefully
             }
 
