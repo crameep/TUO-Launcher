@@ -313,6 +313,30 @@ internal static class UpdateHelper
             File.Copy(versionSrc, versionDest, true);
         }
 
+        // Move data directories from MacOS/ to ClientPath root so the game
+        // finds them via ExecutablePath (which resolves outside the .app)
+        string[] dataDirs = { "LegionScripts", "Data", "ExternalImages" };
+        foreach (string dirName in dataDirs)
+        {
+            string src = Path.Combine(macosDir, dirName);
+            string dest = Path.Combine(PathHelper.ClientPath, dirName);
+            if (Directory.Exists(src))
+            {
+                // Merge contents — don't overwrite user files
+                Directory.CreateDirectory(dest);
+                foreach (string file in Directory.EnumerateFiles(src))
+                {
+                    string destFile = Path.Combine(dest, Path.GetFileName(file));
+                    if (!File.Exists(destFile))
+                        File.Move(file, destFile);
+                    else
+                        File.Delete(file);
+                }
+                // Remove the source dir if empty
+                try { Directory.Delete(src, false); } catch { }
+            }
+        }
+
         // Read version for Info.plist
         string version = "1.0.0";
         if (File.Exists(versionDest))
