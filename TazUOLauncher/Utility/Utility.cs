@@ -29,10 +29,20 @@ internal static class Utility
                 return parsed;
         }
 
-        // For bleeding-edge releases (tag = "TazUO-BleedingEdge"), construct version
-        // from the release's published_at date and commit SHA embedded in the body
+        // For bleeding-edge releases (tag = "TazUO-BleedingEdge"), read the version
+        // string directly from the release body (matches v.txt written by CI)
         if (data.tag_name == "TazUO-BleedingEdge" && data.body != null)
         {
+            // Preferred: exact version embedded in release body by CI
+            var versionMatch = Regex.Match(data.body, @"Version:\s*(.+)");
+            if (versionMatch.Success)
+            {
+                var parsed = ClientVersionInfo.Parse(versionMatch.Groups[1].Value.Trim());
+                if (parsed.Kind != ClientVersionInfo.VersionKind.Unknown)
+                    return parsed;
+            }
+
+            // Legacy fallback: construct from published_at + commit SHA
             var shaMatch = Regex.Match(data.body, @"Commit:\s*([a-f0-9]+)");
             if (shaMatch.Success)
             {
