@@ -23,6 +23,18 @@ internal static class LauncherSelfUpdater
         CONSTANTS.CLIENT_DIRECTORY_NAME, // "TazUO" — the game client lives here
     };
 
+    public static string? LastError { get; private set; }
+
+    private static string LogPath => Path.Combine(PathHelper.LauncherPath, "update.log");
+
+    private static void Log(string message)
+    {
+        string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}";
+        Console.WriteLine(line);
+        try { File.AppendAllText(LogPath, line + Environment.NewLine); }
+        catch { /* best effort */ }
+    }
+
     /// <summary>
     /// Downloads the latest launcher release, replaces the current launcher files
     /// using rename-old / extract-new, then launches the new executable.
@@ -31,6 +43,7 @@ internal static class LauncherSelfUpdater
     /// </summary>
     public static async Task<bool> DownloadAndApplyUpdate(DownloadProgress progress)
     {
+        LastError = null;
         string launcherDir = PathHelper.LauncherBinPath;
         string tempZip = string.Empty;
         string stagingDir = string.Empty;
@@ -39,22 +52,37 @@ internal static class LauncherSelfUpdater
 
         try
         {
+            Log($"Starting self-update. LauncherBinPath={launcherDir}, LauncherPath={PathHelper.LauncherPath}");
+            Log($"Platform zip name: {PlatformHelper.GetPlatformZipName()}");
+
             // ── 1. Locate the platform-specific asset ──────────────────────
             if (!UpdateHelper.HaveData(ReleaseChannel.LAUNCHER))
+            {
+                LastError = "No launcher release data available.";
+                Log(LastError);
                 return false;
+            }
 
             var releaseData = UpdateHelper.ReleaseData[ReleaseChannel.LAUNCHER];
             if (releaseData?.assets == null)
+            {
+                LastError = "Release data has no assets.";
+                Log(LastError);
                 return false;
+            }
 
             string platformZipName = PlatformHelper.GetPlatformZipName();
             var asset = releaseData.assets.FirstOrDefault(
                 a => a.name != null && a.name.EndsWith(platformZipName) && a.browser_download_url != null);
 
             if (asset?.browser_download_url == null)
+            {
+                LastError = $"No matching asset for platform '{platformZipName}'. Available: {string.Join(", ", releaseData.assets.Select(a => a.name))}";
+                Log(LastError);
                 return false;
+            }
 
-            Console.WriteLine($"[SelfUpdate] Downloading {asset.name} from {asset.browser_download_url}");
+            Log($"Downloading {asset.name} from {asset.browser_download_url}");
 
             // ── 2. Download ZIP to temp file ───────────────────────────────
             tempZip = Path.GetTempFileName();
@@ -63,17 +91,21 @@ internal static class LauncherSelfUpdater
             {
                 await httpClient.DownloadAsync(asset.browser_download_url, fs, progress);
             }
+            Log($"Downloaded to {tempZip} ({new FileInfo(tempZip).Length} bytes)");
 
             // ── 3. Extract to a staging directory ──────────────────────────
             stagingDir = Path.Combine(Path.GetTempPath(), "TazUOLauncher_update_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(stagingDir);
             ZipFile.ExtractToDirectory(tempZip, stagingDir, true);
+            Log($"Extracted to {stagingDir}");
 
             // ── 4. Rename existing launcher files to *.old ─────────────────
             renamedFiles = RenameExistingFiles(launcherDir, stagingDir);
+            Log($"Renamed {renamedFiles.Count} existing files");
 
             // ── 5. Move new files from staging into launcher directory ──────
             movedFiles = MoveNewFiles(stagingDir, launcherDir);
+            Log($"Moved {movedFiles.Count} new files to {launcherDir}");
 
             // ── 6. Set executable permissions on Unix ───────────────────────
             SetUnixExecutablePermissions(launcherDir);
@@ -82,19 +114,20 @@ internal static class LauncherSelfUpdater
             string newExePath = GetLauncherExePath(launcherDir);
             if (!string.IsNullOrEmpty(newExePath) && File.Exists(newExePath))
             {
-                Console.WriteLine($"[SelfUpdate] Launching updated launcher: {newExePath}");
+                Log($"Launching updated launcher: {newExePath}");
                 Process.Start(new ProcessStartInfo(newExePath) { WorkingDirectory = launcherDir });
                 return true; // Caller should exit gracefully
             }
 
             // Files are in place but we can't find the exe — still a success,
             // user can manually restart.
-            Console.WriteLine("[SelfUpdate] Warning: Could not locate new launcher executable after update.");
+            Log("Warning: Could not locate new launcher executable after update.");
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SelfUpdate] Update failed: {ex}");
+            LastError = ex.Message;
+            Log($"Update failed: {ex}");
 
             // ── Rollback: remove newly-moved files, rename *.old back ──────
             Rollback(renamedFiles, movedFiles);

@@ -385,7 +385,8 @@ public partial class MainWindow : Window
 
         // Update failed — offer manual download fallback
         viewModel.ShowDownloadProgressBar = false;
-        viewModel.DangerNoticeString = "Launcher update failed. Click the button to download manually.";
+        string errorDetail = LauncherSelfUpdater.LastError ?? "Unknown error";
+        viewModel.DangerNoticeString = $"Launcher update failed: {errorDetail}. Click to download manually.";
         viewModel.ShowLauncherUpdateButton = true;
         launcherUpdateFailed = true;
     }
