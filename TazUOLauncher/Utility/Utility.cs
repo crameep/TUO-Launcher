@@ -39,7 +39,7 @@ internal static class Utility
                 string sha = shaMatch.Groups[1].Value;
                 if (sha.Length > 7)
                     sha = sha.Substring(0, 7);
-                string date = data.published_at.ToString("yyyyMMdd");
+                string date = data.published_at.ToUniversalTime().ToString("yyyyMMdd");
                 return ClientVersionInfo.Parse($"0.0.0-dev.{date}.{sha}");
             }
         }
