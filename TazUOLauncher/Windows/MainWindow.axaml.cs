@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private ReleaseChannel nextDownloadType = ReleaseChannel.INVALID;
     private ProfileEditorWindow? profileWindow;
     private Profile? selectedProfile;
+    private bool launcherUpdateFailed;
     public MainWindow()
     {
         Instance = this;
@@ -352,6 +353,41 @@ public partial class MainWindow : Window
                 if (ProfileManager.TryFindProfile(si, out selectedProfile) && selectedProfile != null)
                     LauncherSettings.GetLauncherSaveFile.LastSelectedProfileName = selectedProfile.Name;
         }
+    }
+    public async void UpdateLauncherClicked(object sender, RoutedEventArgs args)
+    {
+        // After a failed self-update, fall back to opening the browser
+        if (launcherUpdateFailed)
+        {
+            GoToLauncherDownload(sender, args);
+            return;
+        }
+
+        viewModel.ShowLauncherUpdateButton = false;
+        viewModel.DangerNoticeString = "Updating launcher...";
+        viewModel.DownloadProgressBarPercent = 0;
+        viewModel.ShowDownloadProgressBar = true;
+
+        var prog = new DownloadProgress();
+        prog.DownloadProgressChanged += (_, _) =>
+        {
+            Dispatcher.UIThread.InvokeAsync(() => viewModel.DownloadProgressBarPercent = (int)(prog.ProgressPercentage * 100));
+        };
+
+        bool success = await Task.Run(() => LauncherSelfUpdater.DownloadAndApplyUpdate(prog));
+
+        if (success)
+        {
+            // New process was launched by the updater — exit gracefully
+            Close();
+            return;
+        }
+
+        // Update failed — offer manual download fallback
+        viewModel.ShowDownloadProgressBar = false;
+        viewModel.DangerNoticeString = "Launcher update failed. Click the button to download manually.";
+        viewModel.ShowLauncherUpdateButton = true;
+        launcherUpdateFailed = true;
     }
     public void GoToLauncherDownload(object sender, RoutedEventArgs args)
     {

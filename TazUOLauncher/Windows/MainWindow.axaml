@@ -64,8 +64,8 @@
 
         <Grid Width="{Binding $parent.Bounds.Width}" IsVisible="{Binding DangerNoticeStringShowing}" Grid.ColumnDefinitions="*, Auto, *" Margin="0, 5, 0, 0">
             <Label Classes="Warning" HorizontalContentAlignment="Center" Padding="4, 4, 4, 4" Grid.Column="1" Content="{Binding DangerNoticeString}" Background="#D8202020"/>
-            <Button Classes="" Theme="{DynamicResource SolidButton}" IsVisible="{Binding ShowLauncherUpdateButton}" Click="GoToLauncherDownload" Grid.Column="2">
-                    Download Launcher
+            <Button Classes="" Theme="{DynamicResource SolidButton}" IsVisible="{Binding ShowLauncherUpdateButton}" Click="UpdateLauncherClicked" Grid.Column="2">
+                    Update Launcher
             </Button>
         </Grid>
 
