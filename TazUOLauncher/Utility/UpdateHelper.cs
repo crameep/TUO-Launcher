@@ -321,20 +321,7 @@ internal static class UpdateHelper
             string src = Path.Combine(macosDir, dirName);
             string dest = Path.Combine(PathHelper.ClientPath, dirName);
             if (Directory.Exists(src))
-            {
-                // Merge contents — don't overwrite user files
-                Directory.CreateDirectory(dest);
-                foreach (string file in Directory.EnumerateFiles(src))
-                {
-                    string destFile = Path.Combine(dest, Path.GetFileName(file));
-                    if (!File.Exists(destFile))
-                        File.Move(file, destFile);
-                    else
-                        File.Delete(file);
-                }
-                // Remove the source dir if empty
-                try { Directory.Delete(src, false); } catch { }
-            }
+                MergeDirectory(src, dest);
         }
 
         // Read version for Info.plist
@@ -398,5 +385,31 @@ internal static class UpdateHelper
         }
 
         Console.WriteLine($"Created macOS .app bundle at {appBundle}");
+    }
+
+    /// <summary>
+    /// Recursively merges source directory into destination without overwriting existing files.
+    /// Removes source files/dirs after merging.
+    /// </summary>
+    private static void MergeDirectory(string src, string dest)
+    {
+        Directory.CreateDirectory(dest);
+
+        foreach (string file in Directory.EnumerateFiles(src))
+        {
+            string destFile = Path.Combine(dest, Path.GetFileName(file));
+            if (!File.Exists(destFile))
+                File.Move(file, destFile);
+            else
+                File.Delete(file);
+        }
+
+        foreach (string subDir in Directory.EnumerateDirectories(src))
+        {
+            string dirName = Path.GetFileName(subDir);
+            MergeDirectory(subDir, Path.Combine(dest, dirName));
+        }
+
+        try { Directory.Delete(src, false); } catch { }
     }
 }
