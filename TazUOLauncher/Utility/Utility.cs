@@ -170,22 +170,33 @@ internal static class Utility
 
         try
         {
-            ProcessStartInfo proc = new ProcessStartInfo(path, $"-settings \"{profile.GetSettingsFilePath()}\"");
-            proc.WorkingDirectory = PathHelper.ClientPath;
-            proc.Arguments += " -skipupdatecheck";
+            string clientArgs = $"-settings \"{profile.GetSettingsFilePath()}\" -skipupdatecheck";
             if (profile.CUOSettings.AutoLogin && !string.IsNullOrEmpty(profile.LastCharacterName))
             {
-                proc.Arguments += $" -lastcharactername \"{profile.LastCharacterName}\"";
+                clientArgs += $" -lastcharactername \"{profile.LastCharacterName}\"";
             }
 
             if (profile.CUOSettings.AutoLogin)
             {
-                proc.Arguments += " -skiploginscreen";
+                clientArgs += " -skiploginscreen";
             }
 
             if (!string.IsNullOrEmpty(profile.AdditionalArgs))
             {
-                proc.Arguments += " " + profile.AdditionalArgs;
+                clientArgs += " " + profile.AdditionalArgs;
+            }
+
+            ProcessStartInfo proc;
+            if (PlatformHelper.IsMac && Directory.Exists(PathHelper.ClientAppBundlePath))
+            {
+                // Launch via 'open' for proper macOS .app behavior (icon, no terminal)
+                proc = new ProcessStartInfo("open", $"-a \"{PathHelper.ClientAppBundlePath}\" --args {clientArgs}");
+                proc.WorkingDirectory = PathHelper.ClientPath;
+            }
+            else
+            {
+                proc = new ProcessStartInfo(path, clientArgs);
+                proc.WorkingDirectory = PathHelper.ClientPath;
             }
 
             Process.Start(proc);

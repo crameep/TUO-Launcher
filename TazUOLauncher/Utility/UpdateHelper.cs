@@ -220,13 +220,13 @@ internal static class UpdateHelper
             return;
         }
 
-        string extractTo = PathHelper.ClientPath;
+        string extractTo = PlatformHelper.IsMac ? PathHelper.ClientAppMacOSPath : PathHelper.ClientPath;
 
         await Task.Run(() =>
         {
             GitHubReleaseData.Asset? selectedAsset = null;
             string platformZipName = PlatformHelper.GetPlatformZipName();
-            
+
             // First, try to find platform-specific zip
             foreach (GitHubReleaseData.Asset asset in releaseData.assets)
             {
@@ -236,7 +236,7 @@ internal static class UpdateHelper
                     break;
                 }
             }
-            
+
             // Fallback to current method if platform-specific zip not found
             if (selectedAsset == null)
             {
@@ -249,7 +249,7 @@ internal static class UpdateHelper
                     }
                 }
             }
-            
+
             if (selectedAsset != null)
             {
                 Console.WriteLine($"Picked for download: {selectedAsset.name} from {selectedAsset.browser_download_url}");
@@ -264,14 +264,104 @@ internal static class UpdateHelper
 
                     Directory.CreateDirectory(extractTo);
                     ZipFile.ExtractToDirectory(tempFilePath, extractTo, true);
+
+                    if (PlatformHelper.IsMac)
+                    {
+                        CreateMacAppBundle();
+                    }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
                 }
             }
-            
+
             onCompleted?.Invoke();
         });
+    }
+
+    /// <summary>
+    /// Creates the macOS .app bundle scaffolding around the extracted flat zip files.
+    /// The flat zip is extracted to TazUO.app/Contents/MacOS/.
+    /// This method creates Info.plist, PkgInfo, moves icon.icns to Resources/,
+    /// copies v.txt to the ClientPath root, and ad-hoc codesigns the bundle.
+    /// </summary>
+    private static void CreateMacAppBundle()
+    {
+        string appBundle = PathHelper.ClientAppBundlePath;
+        string contentsDir = Path.Combine(appBundle, "Contents");
+        string macosDir = Path.Combine(contentsDir, "MacOS");
+        string resourcesDir = Path.Combine(contentsDir, "Resources");
+
+        Directory.CreateDirectory(resourcesDir);
+
+        // Move icon.icns from MacOS/ to Resources/ (CI includes it in the flat zip)
+        string iconSrc = Path.Combine(macosDir, "icon.icns");
+        string iconDest = Path.Combine(resourcesDir, "icon.icns");
+        if (File.Exists(iconSrc))
+        {
+            File.Copy(iconSrc, iconDest, true);
+            File.Delete(iconSrc);
+        }
+
+        // Copy v.txt to ClientPath root so version detection works
+        string versionSrc = Path.Combine(macosDir, "v.txt");
+        string versionDest = Path.Combine(PathHelper.ClientPath, "v.txt");
+        if (File.Exists(versionSrc))
+        {
+            File.Copy(versionSrc, versionDest, true);
+        }
+
+        // Read version for Info.plist
+        string version = "1.0.0";
+        if (File.Exists(versionDest))
+        {
+            try { version = File.ReadAllText(versionDest).Trim(); } catch { }
+        }
+
+        // Write Info.plist
+        string plist = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<!DOCTYPE plist PUBLIC ""-//Apple//DTD PLIST 1.0//EN"" ""http://www.apple.com/DTDs/PropertyList-1.0.dtd"">
+<plist version=""1.0"">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>{CONSTANTS.NATIVE_EXECUTABLE_NAME}</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.crameep.tazuo</string>
+  <key>CFBundleName</key>
+  <string>TazUO</string>
+  <key>CFBundleIconFile</key>
+  <string>icon</string>
+  <key>CFBundleShortVersionString</key>
+  <string>{version}</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+</dict>
+</plist>";
+        File.WriteAllText(Path.Combine(contentsDir, "Info.plist"), plist);
+
+        // Write PkgInfo
+        File.WriteAllText(Path.Combine(contentsDir, "PkgInfo"), "APPL????");
+
+        // Ad-hoc codesign
+        try
+        {
+            var codesign = new System.Diagnostics.Process();
+            codesign.StartInfo.FileName = "codesign";
+            codesign.StartInfo.Arguments = $"--force --deep --sign - \"{appBundle}\"";
+            codesign.StartInfo.UseShellExecute = false;
+            codesign.Start();
+            codesign.WaitForExit(30000);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Codesign failed (non-fatal): {ex.Message}");
+        }
+
+        Console.WriteLine($"Created macOS .app bundle at {appBundle}");
     }
 }

@@ -47,6 +47,17 @@ public static class PathHelper
     /// </summary>
     public static string ClientPath { get; set; } = Path.Combine(LauncherPath, CONSTANTS.CLIENT_DIRECTORY_NAME);
 
+    /// <summary>
+    /// Path to the .app bundle directory on macOS (e.g. TazUO/TazUO.app/).
+    /// </summary>
+    public static string ClientAppBundlePath => Path.Combine(ClientPath, CONSTANTS.NATIVE_EXECUTABLE_NAME + ".app");
+
+    /// <summary>
+    /// Path to Contents/MacOS/ inside the .app bundle on macOS.
+    /// This is where the flat zip gets extracted on macOS.
+    /// </summary>
+    public static string ClientAppMacOSPath => Path.Combine(ClientAppBundlePath, "Contents", "MacOS");
+
     public static string NativeClientPath()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -54,7 +65,12 @@ public static class PathHelper
             return Path.Combine(ClientPath, CONSTANTS.NATIVE_EXECUTABLE_NAME + ".exe");
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return Path.Combine(ClientAppMacOSPath, CONSTANTS.NATIVE_EXECUTABLE_NAME);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             return Path.Combine(ClientPath, CONSTANTS.NATIVE_EXECUTABLE_NAME);
         }
@@ -88,7 +104,22 @@ public static class PathHelper
             return Path.Combine(ClientPath, exeName);
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            // On macOS, the executable lives inside the .app bundle
+            string appExe = Path.Combine(ClientAppMacOSPath, CONSTANTS.NATIVE_EXECUTABLE_NAME);
+            if (File.Exists(appExe))
+                return appExe;
+
+            // Fallback: check for legacy flat install
+            exeName = CONSTANTS.NATIVE_EXECUTABLE_NAME;
+            if (!File.Exists(Path.Combine(ClientPath, exeName)))
+                exeName = CONSTANTS.CLASSIC_EXE_NAME;
+
+            return Path.Combine(ClientPath, exeName);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             exeName = CONSTANTS.NATIVE_EXECUTABLE_NAME;
             if (!File.Exists(Path.Combine(ClientPath, exeName)))

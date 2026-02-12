@@ -18,9 +18,19 @@ internal static class ClientHelper
     public static void CleanUpClientFiles()
     {
         string[] keepDirectories = new[] { "Data", "LegionScripts", "Fonts", "ExternalImages" };
-        
+
         try
         {
+            // On macOS, clean the .app bundle's MacOS/ directory (where binaries live)
+            if (PlatformHelper.IsMac && Directory.Exists(PathHelper.ClientAppMacOSPath))
+            {
+                DirectoryInfo macosDir = new DirectoryInfo(PathHelper.ClientAppMacOSPath);
+                foreach (var subDirectory in macosDir.GetDirectories())
+                    subDirectory.Delete(true);
+                foreach (var file in macosDir.GetFiles())
+                    file.Delete();
+            }
+
             DirectoryInfo directoryInfo = new DirectoryInfo(PathHelper.ClientPath);
 
             if (!directoryInfo.Exists) return;
@@ -28,10 +38,16 @@ internal static class ClientHelper
             var subDirectories = directoryInfo.GetDirectories();
             foreach (var subDirectory in subDirectories)
             {
+                // On macOS, also clean the .app bundle itself (it gets recreated on install)
+                if (PlatformHelper.IsMac && subDirectory.Name.EndsWith(".app"))
+                {
+                    subDirectory.Delete(true);
+                    continue;
+                }
                 if (keepDirectories.Contains(subDirectory.Name)) continue;
                 subDirectory.Delete(true);
             }
-            
+
             var files = directoryInfo.GetFiles();
             foreach (var file in files)
                 file.Delete();
