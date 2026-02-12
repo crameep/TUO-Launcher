@@ -300,8 +300,9 @@ internal static class UpdateHelper
         string iconDest = Path.Combine(resourcesDir, "icon.icns");
         if (File.Exists(iconSrc))
         {
-            File.Copy(iconSrc, iconDest, true);
-            File.Delete(iconSrc);
+            if (File.Exists(iconDest))
+                File.Delete(iconDest);
+            File.Move(iconSrc, iconDest);
         }
 
         // Copy v.txt to ClientPath root so version detection works
@@ -350,16 +351,26 @@ internal static class UpdateHelper
         // Ad-hoc codesign
         try
         {
-            var codesign = new System.Diagnostics.Process();
+            using var codesign = new System.Diagnostics.Process();
             codesign.StartInfo.FileName = "codesign";
             codesign.StartInfo.Arguments = $"--force --deep --sign - \"{appBundle}\"";
             codesign.StartInfo.UseShellExecute = false;
+            codesign.StartInfo.RedirectStandardError = true;
             codesign.Start();
-            codesign.WaitForExit(30000);
+            string stderr = codesign.StandardError.ReadToEnd();
+            if (!codesign.WaitForExit(15000))
+            {
+                codesign.Kill();
+                Console.WriteLine("Codesign timed out (non-fatal)");
+            }
+            else if (codesign.ExitCode != 0)
+            {
+                Console.WriteLine($"Codesign failed with exit code {codesign.ExitCode}: {stderr}");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Codesign failed (non-fatal): {ex.Message}");
+            Console.WriteLine($"Codesign not available (non-fatal): {ex.Message}");
         }
 
         Console.WriteLine($"Created macOS .app bundle at {appBundle}");

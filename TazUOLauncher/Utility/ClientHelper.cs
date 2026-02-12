@@ -21,16 +21,6 @@ internal static class ClientHelper
 
         try
         {
-            // On macOS, clean the .app bundle's MacOS/ directory (where binaries live)
-            if (PlatformHelper.IsMac && Directory.Exists(PathHelper.ClientAppMacOSPath))
-            {
-                DirectoryInfo macosDir = new DirectoryInfo(PathHelper.ClientAppMacOSPath);
-                foreach (var subDirectory in macosDir.GetDirectories())
-                    subDirectory.Delete(true);
-                foreach (var file in macosDir.GetFiles())
-                    file.Delete();
-            }
-
             DirectoryInfo directoryInfo = new DirectoryInfo(PathHelper.ClientPath);
 
             if (!directoryInfo.Exists) return;
