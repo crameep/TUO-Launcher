@@ -27,11 +27,11 @@ public partial class MainWindow : Window
 
         DataContext = viewModel = new MainWindowViewModel();
 
-        viewModel.MainChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.MAIN;
-        viewModel.DevChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.DEV;
-        viewModel.BranchChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.BRANCH;
+        viewModel.StableChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.STABLE;
+        viewModel.BleedingEdgeChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.BLEEDING_EDGE;
+        viewModel.FeatureBranchChannelSelected = LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.FEATURE_BRANCH;
 
-        if (viewModel.BranchChannelSelected)
+        if (viewModel.FeatureBranchChannelSelected)
             _ = PopulateBranchNames();
 
         DoChecksAsync();
@@ -104,7 +104,7 @@ public partial class MainWindow : Window
         if (UpdateHelper.HaveData(channel))
         {
             var versionInfo = UpdateHelper.ReleaseData[channel].GetClientVersionInfo();
-            if (channel == ReleaseChannel.BRANCH && !string.IsNullOrEmpty(LauncherSettings.GetLauncherSaveFile.SelectedBranch))
+            if (channel == ReleaseChannel.FEATURE_BRANCH && !string.IsNullOrEmpty(LauncherSettings.GetLauncherSaveFile.SelectedBranch))
                 viewModel.RemoteVersionString = $"Branch: {versionInfo.ToDisplayString()}";
             else
                 viewModel.RemoteVersionString = string.Format(CONSTANTS.REMOTE_VERSION_FORMAT, versionInfo.ToDisplayString());
@@ -144,7 +144,7 @@ public partial class MainWindow : Window
         {
             switch (nextDownloadType)
             {
-                case ReleaseChannel.MAIN or ReleaseChannel.DEV or ReleaseChannel.BRANCH:
+                case ReleaseChannel.STABLE or ReleaseChannel.BLEEDING_EDGE or ReleaseChannel.FEATURE_BRANCH:
                     viewModel.UpdateButtonString = clientStatus == ClientStatus.NO_LOCAL_CLIENT ? CONSTANTS.NO_CLIENT_AVAILABLE : CONSTANTS.CLIENT_UPDATE_AVAILABLE;
                     viewModel.ShowDownloadAvailableButton = true;
                     break;
@@ -225,32 +225,32 @@ public partial class MainWindow : Window
 
     public void SetStableChannelClicked(object sender, RoutedEventArgs args)
     {
-        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.MAIN) return;
+        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.STABLE) return;
 
-        viewModel.MainChannelSelected = true;
-        viewModel.DevChannelSelected = false;
-        viewModel.BranchChannelSelected = false;
-        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.MAIN;
+        viewModel.StableChannelSelected = true;
+        viewModel.BleedingEdgeChannelSelected = false;
+        viewModel.FeatureBranchChannelSelected = false;
+        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.STABLE;
         RecheckAfterChannelUpdated();
     }
-    public void SetDevChannelClicked(object sender, RoutedEventArgs args)
+    public void SetBleedingEdgeChannelClicked(object sender, RoutedEventArgs args)
     {
-        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.DEV) return;
+        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.BLEEDING_EDGE) return;
 
-        viewModel.DevChannelSelected = true;
-        viewModel.MainChannelSelected = false;
-        viewModel.BranchChannelSelected = false;
-        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.DEV;
+        viewModel.BleedingEdgeChannelSelected = true;
+        viewModel.StableChannelSelected = false;
+        viewModel.FeatureBranchChannelSelected = false;
+        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.BLEEDING_EDGE;
         RecheckAfterChannelUpdated();
     }
-    public async void SetBranchChannelClicked(object sender, RoutedEventArgs args)
+    public async void SetFeatureBranchChannelClicked(object sender, RoutedEventArgs args)
     {
-        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.BRANCH) return;
+        if (LauncherSettings.GetLauncherSaveFile.DownloadChannel == ReleaseChannel.FEATURE_BRANCH) return;
 
-        viewModel.BranchChannelSelected = true;
-        viewModel.MainChannelSelected = false;
-        viewModel.DevChannelSelected = false;
-        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.BRANCH;
+        viewModel.FeatureBranchChannelSelected = true;
+        viewModel.StableChannelSelected = false;
+        viewModel.BleedingEdgeChannelSelected = false;
+        LauncherSettings.GetLauncherSaveFile.DownloadChannel = ReleaseChannel.FEATURE_BRANCH;
 
         await PopulateBranchNames();
 
@@ -304,8 +304,8 @@ public partial class MainWindow : Window
         {
             LauncherSettings.GetLauncherSaveFile.SelectedBranch = branchName;
 
-            if (!UpdateHelper.ReleaseData.TryAdd(ReleaseChannel.BRANCH, branchRelease))
-                UpdateHelper.ReleaseData[ReleaseChannel.BRANCH] = branchRelease;
+            if (!UpdateHelper.ReleaseData.TryAdd(ReleaseChannel.FEATURE_BRANCH, branchRelease))
+                UpdateHelper.ReleaseData[ReleaseChannel.FEATURE_BRANCH] = branchRelease;
 
             viewModel.DangerNoticeString = string.Empty;
             RecheckAfterChannelUpdated();
@@ -416,13 +416,13 @@ public partial class MainWindow : Window
     public void DownloadMainBuildClick(object sender, RoutedEventArgs args)
     {
         if (clientStatus == ClientStatus.DOWNLOAD_IN_PROGRESS) return;
-        nextDownloadType = ReleaseChannel.MAIN;
+        nextDownloadType = ReleaseChannel.STABLE;
         DoNextDownload();
     }
-    public void DownloadDevBuildClick(object sender, RoutedEventArgs args)
+    public void DownloadBleedingEdgeBuildClick(object sender, RoutedEventArgs args)
     {
         if (clientStatus == ClientStatus.DOWNLOAD_IN_PROGRESS) return;
-        nextDownloadType = ReleaseChannel.DEV;
+        nextDownloadType = ReleaseChannel.BLEEDING_EDGE;
         DoNextDownload();
     }
     public void ImportCUOLauncherClick(object sender, RoutedEventArgs args)
@@ -459,9 +459,9 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private bool playButtonEnabled;
     private string updateButtonString = string.Empty;
     private bool showLauncherUpdateButton;
-    private bool devChannelSelected;
-    private bool mainChannelSelected;
-    private bool branchChannelSelected;
+    private bool bleedingEdgeChannelSelected;
+    private bool stableChannelSelected;
+    private bool featureBranchChannelSelected;
     private bool dangerNoticeStringShowing;
     private bool autoApplyUpdates = LauncherSettings.GetLauncherSaveFile.AutoDownloadUpdates;
     private ObservableCollection<string> branchNames = new ObservableCollection<string>();
@@ -506,28 +506,28 @@ public class MainWindowViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(AutoApplyUpdates));
         }
     }
-    public bool DevChannelSelected
+    public bool BleedingEdgeChannelSelected
     {
-        get => devChannelSelected; set
+        get => bleedingEdgeChannelSelected; set
         {
-            devChannelSelected = value;
-            OnPropertyChanged(nameof(DevChannelSelected));
+            bleedingEdgeChannelSelected = value;
+            OnPropertyChanged(nameof(BleedingEdgeChannelSelected));
         }
     }
-    public bool MainChannelSelected
+    public bool StableChannelSelected
     {
-        get => mainChannelSelected; set
+        get => stableChannelSelected; set
         {
-            mainChannelSelected = value;
-            OnPropertyChanged(nameof(MainChannelSelected));
+            stableChannelSelected = value;
+            OnPropertyChanged(nameof(StableChannelSelected));
         }
     }
-    public bool BranchChannelSelected
+    public bool FeatureBranchChannelSelected
     {
-        get => branchChannelSelected; set
+        get => featureBranchChannelSelected; set
         {
-            branchChannelSelected = value;
-            OnPropertyChanged(nameof(BranchChannelSelected));
+            featureBranchChannelSelected = value;
+            OnPropertyChanged(nameof(FeatureBranchChannelSelected));
         }
     }
     public ObservableCollection<string> BranchNames

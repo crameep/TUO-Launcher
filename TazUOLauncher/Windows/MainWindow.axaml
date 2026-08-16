@@ -20,28 +20,28 @@
                 </MenuItem.Header>
                 <MenuItem Header="Tools">
                     <MenuItem Header="Install latest stable build" Click="DownloadMainBuildClick"/>
-                    <MenuItem Header="Install latest bleeding edge build" Click="DownloadDevBuildClick"/>
+                    <MenuItem Header="Install latest bleeding edge build" Click="DownloadBleedingEdgeBuildClick"/>
                     <MenuItem Header="Import ClassicUO Launcher profiles" Click="ImportCUOLauncherClick"/>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="Update channel">
-                    <MenuItem Header="Stable" GroupName="ChannelGroup" IsChecked="{Binding MainChannelSelected}" Click="SetStableChannelClicked">
+                    <MenuItem Header="Stable" GroupName="ChannelGroup" IsChecked="{Binding StableChannelSelected}" Click="SetStableChannelClicked">
                         <MenuItem.Icon>
-                        <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding MainChannelSelected}" />
+                        <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding StableChannelSelected}" />
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Header="Bleeding Edge" GroupName="ChannelGroup" IsChecked="{Binding DevChannelSelected}" Click="SetDevChannelClicked">
+                    <MenuItem Header="Bleeding Edge" GroupName="ChannelGroup" IsChecked="{Binding BleedingEdgeChannelSelected}" Click="SetBleedingEdgeChannelClicked">
                         <MenuItem.Icon>
-                        <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding DevChannelSelected}" />
+                        <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding BleedingEdgeChannelSelected}" />
                         </MenuItem.Icon>
                     </MenuItem>
-                    <MenuItem Header="Feature Branch" GroupName="ChannelGroup" IsChecked="{Binding BranchChannelSelected}" Click="SetBranchChannelClicked">
+                    <MenuItem Header="Feature Branch" GroupName="ChannelGroup" IsChecked="{Binding FeatureBranchChannelSelected}" Click="SetFeatureBranchChannelClicked">
                         <MenuItem.Icon>
-                        <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding BranchChannelSelected}" />
+                        <Image Opacity="0.4" Source="resm:TazUOLauncher.Resources.square-check-solid.png?assembly=TazUOLauncher" IsVisible="{Binding FeatureBranchChannelSelected}" />
                         </MenuItem.Icon>
                     </MenuItem>
                 </MenuItem>
-                <MenuItem Header="Branch" x:Name="BranchSubmenu" IsVisible="{Binding BranchChannelSelected}">
+                <MenuItem Header="Branch" x:Name="BranchSubmenu" IsVisible="{Binding FeatureBranchChannelSelected}">
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="Options">

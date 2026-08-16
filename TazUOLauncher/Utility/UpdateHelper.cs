@@ -14,7 +14,7 @@ namespace TazUOLauncher;
 
 internal static class UpdateHelper
 {
-    private const string BRANCH_TAG_PREFIX = "branch-";
+    private const string FEATURE_BRANCH_TAG_PREFIX = "branch-";
     private static readonly TimeSpan BranchCacheTtl = TimeSpan.FromMinutes(5);
 
     public static ConcurrentDictionary<ReleaseChannel, GitHubReleaseData> ReleaseData = new ConcurrentDictionary<ReleaseChannel, GitHubReleaseData>();
@@ -27,9 +27,9 @@ internal static class UpdateHelper
     public static async Task GetAllReleaseData()
     {
         List<Task> all = new List<Task>(){
-            TryGetReleaseData(ReleaseChannel.DEV),
+            TryGetReleaseData(ReleaseChannel.BLEEDING_EDGE),
             Task.Delay(500),
-            TryGetReleaseData(ReleaseChannel.MAIN),
+            TryGetReleaseData(ReleaseChannel.STABLE),
             Task.Delay(500),
             TryGetReleaseData(ReleaseChannel.LAUNCHER),
         };
@@ -45,7 +45,7 @@ internal static class UpdateHelper
         if (_cachedBranchReleases != null && DateTime.UtcNow - _branchCacheTimestamp < BranchCacheTtl)
             return _cachedBranchReleases;
 
-        string url = CONSTANTS.BRANCH_BUILDS_API_URL + "?per_page=100";
+        string url = CONSTANTS.FEATURE_BRANCH_BUILDS_API_URL + "?per_page=100";
 
         HttpRequestMessage restApi = new HttpRequestMessage()
         {
@@ -64,7 +64,7 @@ internal static class UpdateHelper
             if (allReleases != null)
             {
                 _cachedBranchReleases = allReleases
-                    .Where(r => r.tag_name != null && r.tag_name.StartsWith(BRANCH_TAG_PREFIX))
+                    .Where(r => r.tag_name != null && r.tag_name.StartsWith(FEATURE_BRANCH_TAG_PREFIX))
                     .ToList();
             }
             else
@@ -87,15 +87,15 @@ internal static class UpdateHelper
     {
         var releases = await GetBranchReleases();
         return releases
-            .Where(r => !string.IsNullOrEmpty(r.tag_name) && r.tag_name.Length > BRANCH_TAG_PREFIX.Length)
-            .Select(r => r.tag_name!.Substring(BRANCH_TAG_PREFIX.Length))
+            .Where(r => !string.IsNullOrEmpty(r.tag_name) && r.tag_name.Length > FEATURE_BRANCH_TAG_PREFIX.Length)
+            .Select(r => r.tag_name!.Substring(FEATURE_BRANCH_TAG_PREFIX.Length))
             .ToList();
     }
 
     public static async Task<GitHubReleaseData?> GetBranchReleaseData(string branchName)
     {
         var releases = await GetBranchReleases();
-        string tagName = BRANCH_TAG_PREFIX + branchName;
+        string tagName = FEATURE_BRANCH_TAG_PREFIX + branchName;
         return releases.FirstOrDefault(r => r.tag_name == tagName);
     }
 
@@ -109,16 +109,16 @@ internal static class UpdateHelper
 
         if (branchRelease != null)
         {
-            if (!ReleaseData.TryAdd(ReleaseChannel.BRANCH, branchRelease))
-                ReleaseData[ReleaseChannel.BRANCH] = branchRelease;
+            if (!ReleaseData.TryAdd(ReleaseChannel.FEATURE_BRANCH, branchRelease))
+                ReleaseData[ReleaseChannel.FEATURE_BRANCH] = branchRelease;
         }
         else
         {
             Console.WriteLine($"Branch build '{selectedBranch}' not found. Falling back to MAIN channel.");
-            if (HaveData(ReleaseChannel.MAIN))
+            if (HaveData(ReleaseChannel.STABLE))
             {
-                if (!ReleaseData.TryAdd(ReleaseChannel.BRANCH, ReleaseData[ReleaseChannel.MAIN]))
-                    ReleaseData[ReleaseChannel.BRANCH] = ReleaseData[ReleaseChannel.MAIN];
+                if (!ReleaseData.TryAdd(ReleaseChannel.FEATURE_BRANCH, ReleaseData[ReleaseChannel.STABLE]))
+                    ReleaseData[ReleaseChannel.FEATURE_BRANCH] = ReleaseData[ReleaseChannel.STABLE];
             }
         }
     }
@@ -129,17 +129,17 @@ internal static class UpdateHelper
 
         switch (channel)
         {
-            case ReleaseChannel.MAIN:
-                url = CONSTANTS.MAIN_CHANNEL_RELEASE_URL;
+            case ReleaseChannel.STABLE:
+                url = CONSTANTS.STABLE_CHANNEL_RELEASE_URL;
                 break;
-            case ReleaseChannel.DEV:
-                url = CONSTANTS.DEV_CHANNEL_RELEASE_URL;
+            case ReleaseChannel.BLEEDING_EDGE:
+                url = CONSTANTS.BLEEDING_EDGE_CHANNEL_RELEASE_URL;
                 break;
             case ReleaseChannel.LAUNCHER:
                 url = CONSTANTS.LAUNCHER_RELEASE_URL;
                 break;
             default:
-                url = CONSTANTS.MAIN_CHANNEL_RELEASE_URL;
+                url = CONSTANTS.STABLE_CHANNEL_RELEASE_URL;
                 break;
         }
 
